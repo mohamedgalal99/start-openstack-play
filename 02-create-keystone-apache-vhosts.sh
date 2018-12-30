@@ -1,10 +1,28 @@
 #!/bin/bash
 
+# Install and configure keystone on controller
+
+mysql_passwd="rooter"
+
+echo "[...] Create keystone database"
+cat > /tmp/create-heystonedb.sql << END
+CREATE DATABASE keystone;
+GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'P@ssw0rd';
+GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'P@ssw0rd';
+SHOW GRANTS FOR 'keystone'@'%';
+END
+
+[[ -f "/tmp/create-heystonedb.sql" ]] || { echo "[-] Can't find sql file /tmp/create-heystonedb.sql to create keystone db"; exit 1; }
+
+mysql -u root -p${mysql_passwd} < /tmp/create-heystonedb.sql
+
+
+
 ## Running on controller
 # don't need it to start as we using apache
 echo "manual" > /etc/init/keystone.override
 
-apt-get install keystone apache2 libapache2-mod-wsgi memcached python-memcache
+apt-get install keystone apache2 libapache2-mod-wsgi memcached python-memcache -y
 
 
 
@@ -12,11 +30,11 @@ apt-get install keystone apache2 libapache2-mod-wsgi memcached python-memcache
 cat > /etc/keystone/keystone.conf << END
 [DEFAULT]
 verbose = True
-admin_token = Password1
+admin_token = P@ssw0rd     # make var in start of script
 log_dir = /var/log/keystone
 
 [database]
-connection = mysql://keystone:Password1@controller/keystone
+connection = mysql://root:rooter@$(hostname)/keystone    # configure db connection, should be changed and make var in begin of script
 
 [memcache]
 servers = localhost:11211
@@ -82,7 +100,7 @@ a2ensite wsgi-keystone.conf
 
 
 
-services apache2 restart
+service apache2 restart
 
 # Remove SQL lite db
 [[ -f "/var/lib/keystone/keystone.db" ]] && rm -f /var/lib/keystone/keystone.db
