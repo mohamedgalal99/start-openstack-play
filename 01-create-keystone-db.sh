@@ -1,4 +1,5 @@
 #!/bin/bash
+# now running in next script
 
 MYSQL_ROOT_PW="R00t3r"
 
